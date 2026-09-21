@@ -1645,9 +1645,17 @@ static bool connect_drm_connector(struct wlr_drm_connector *wlr_conn,
 
 	wlr_log(WLR_INFO, "Detected modes:");
 
+	/*
+	 * An analog TV encoder has no progressive timings to offer, so filtering
+	 * interlaced modes out here would leave the connector with an empty mode
+	 * list and nothing for a client to choose.
+	 */
+	bool keep_interlaced = drm_conn->connector_type == DRM_MODE_CONNECTOR_TV;
+
 	bool found_current_mode = false;
 	for (int i = 0; i < drm_conn->count_modes; ++i) {
-		if (drm_conn->modes[i].flags & DRM_MODE_FLAG_INTERLACE) {
+		if (!keep_interlaced &&
+				(drm_conn->modes[i].flags & DRM_MODE_FLAG_INTERLACE)) {
 			continue;
 		}
 

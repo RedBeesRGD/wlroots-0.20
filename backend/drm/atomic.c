@@ -452,7 +452,8 @@ static void plane_disable(struct atomic *atom, struct wlr_drm_plane *plane) {
 static void set_plane_props(struct atomic *atom, struct wlr_drm_backend *drm,
 		struct wlr_drm_plane *plane, struct wlr_drm_fb *fb, uint32_t crtc_id,
 		const struct wlr_box *dst_box,
-		const struct wlr_fbox *src_box) {
+		const struct wlr_fbox *src_box,
+		enum wlr_scale_filter_mode scale_filter) {
 	uint32_t id = plane->id;
 	const struct wlr_drm_plane_props *props = &plane->props;
 
@@ -473,6 +474,14 @@ static void set_plane_props(struct atomic *atom, struct wlr_drm_backend *drm,
 	atomic_add(atom, id, props->crtc_y, dst_box->y);
 	atomic_add(atom, id, props->crtc_w, dst_box->width);
 	atomic_add(atom, id, props->crtc_h, dst_box->height);
+
+	// Values from enum drm_scaling_filter: 0 is DEFAULT, 1 is
+	// NEAREST_NEIGHBOR. Only meaningful when the plane is scaling, and only
+	// present on drivers whose scaler can be told which filter to use.
+	if (props->scaling_filter != 0) {
+		atomic_add(atom, id, props->scaling_filter,
+			scale_filter == WLR_SCALE_FILTER_NEAREST ? 1 : 0);
+	}
 }
 
 static bool supports_cursor_hotspots(const struct wlr_drm_plane *plane) {
@@ -527,7 +536,8 @@ static void atomic_connector_add(struct atomic *atom,
 		}
 
 		set_plane_props(atom, drm, crtc->primary, state->primary_fb, crtc->id,
-			&state->primary_viewport.dst_box, &state->primary_viewport.src_box);
+			&state->primary_viewport.dst_box, &state->primary_viewport.src_box,
+			state->base->buffer_scale_filter);
 		if (crtc->primary->props.fb_damage_clips != 0) {
 			atomic_add(atom, crtc->primary->id,
 				crtc->primary->props.fb_damage_clips, state->fb_damage_clips);
@@ -548,7 +558,8 @@ static void atomic_connector_add(struct atomic *atom,
 					.height = state->cursor_fb->wlr_buf->height,
 				};
 				set_plane_props(atom, drm, crtc->cursor, state->cursor_fb,
-					crtc->id, &cursor_dst, &cursor_src);
+					crtc->id, &cursor_dst, &cursor_src,
+					WLR_SCALE_FILTER_BILINEAR);
 				if (supports_cursor_hotspots(crtc->cursor)) {
 					atomic_add(atom, crtc->cursor->id,
 						crtc->cursor->props.hotspot_x, conn->cursor_hotspot_x);

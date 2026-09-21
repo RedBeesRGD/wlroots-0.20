@@ -2153,6 +2153,11 @@ static enum scene_direct_scanout_result scene_entry_try_direct_scanout(
 	}
 
 	wlr_output_state_set_buffer(&pending, wlr_buffer);
+
+	// Compositing would have honoured the node's filter; scanning out should
+	// too, so an integer upscale stays pixel exact when the display
+	// controller does it instead of the GPU.
+	pending.buffer_scale_filter = buffer->filter_mode;
 	if (buffer->wait_timeline != NULL) {
 		wlr_output_state_set_wait_timeline(&pending, buffer->wait_timeline, buffer->wait_point);
 	}

@@ -15,6 +15,7 @@
 #include <wayland-server-protocol.h>
 #include <wayland-util.h>
 #include <wlr/render/color.h>
+#include <wlr/render/pass.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_buffer.h>
 #include <wlr/util/addon.h>
@@ -134,6 +135,10 @@ struct wlr_output_state {
 	// offset is relative to the origin of this output. Double-buffered by
 	// WLR_OUTPUT_STATE_BUFFER along with `buffer`.
 	struct wlr_box buffer_dst_box;
+	// Filter to use when buffer_dst_box scales the buffer. Backends which
+	// cannot select a filter ignore this. Double-buffered by
+	// WLR_OUTPUT_STATE_BUFFER along with `buffer`.
+	enum wlr_scale_filter_mode buffer_scale_filter;
 
 	/* Request a tearing page-flip. When enabled, this may cause the output to
 	 * display a part of the previous buffer and a part of the current buffer at
